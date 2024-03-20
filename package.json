@@ -6,6 +6,7 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "webpack",
+        "debug": "cross-env noInline=true yarn start",
         "watch": "webpack --watch",
         "start": "webpack-dev-server --open"
     },
@@ -17,9 +18,12 @@
     "dependencies": {
         "@babel/runtime": "^7.24.0",
         "@types/itowns": "^2.42.1",
+        "@types/proj4": "^2.5.5",
         "@types/three": "^0.162.0",
         "buffer": "^6.0.3",
-        "itowns": "^2.41.0"
+        "itowns": "^2.42.0",
+        "proj4": "^2.9.2",
+        "three": "^0.162.0"
     },
     "devDependencies": {
         "copy-webpack-plugin": "^12.0.2",

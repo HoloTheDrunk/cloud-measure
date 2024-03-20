@@ -1,20 +1,221 @@
+:root {
+    --ui-background-color: #2f2f3f;
+
+    --ui-text-color: #cfcfdf;
+
+    --ui-button-border-color: #4f4f5f;
+    --ui-button-hover-background-color: #5f5f6f;
+    --ui-button-hover-foreground-color: #2f2f3f;
+}
+
 html {
+    width: 100%;
     height: 100%;
 }
 
 body {
     margin: 0;
     overflow: hidden;
+    width: 100%;
     height: 100%;
 }
 
-#viewerDiv {
+.app {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.ui-container {
+    background-color: var(--ui-background-color);
+    color: var(--ui-text-color);
+}
+
+.toolbox {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+
+    font-family: sans-serif;
+
     margin: auto;
     height: 100%;
-    width: 100%;
-    padding: 0;
+    flex: 1;
 }
 
-#viewerDiv > canvas {
-    display: block;
+.toolbox button {
+    flex: 0;
+
+    border: 2px solid var(--ui-button-border-color);
+    border-radius: 8px;
+
+    transition-duration: 0.1s;
+    background-color: var(--ui-background-color);
+    color: var(--ui-text-color);
+
+    padding: 0.1em 0.5em 0.1em 0.5em;
+    border-radius: 10;
+}
+
+.toolbox button:hover {
+    background-color: var(--ui-button-hover-background-color);
+    color: var(--ui-text-color);
+}
+
+.toolbox button:active {
+    box-shadow: 0 0 3px 3px #555 inset;
+}
+
+.center-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    flex: 3;
+}
+
+.viewer {
+    display: flex;
+    align-items: stretch;
+    margin: auto;
+    flex: 4;
+    width: 100%;
+    z-index: -1000;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    padding: 5%;
+    align-items: flex-start;
+    flex: 0 1 width;
+    box-shadow: 3px 2px 3px 3px #000;
+}
+
+#logo {
+    position: relative;
+    flex: 1;
+}
+
+#logo>img:nth-of-type(1) {
+    position: relative;
+    width: 100%;
+}
+
+#logo>img:nth-of-type(2) {
+    position: absolute;
+    left: 0;
+    width: 100%;
+}
+
+.debug-area {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    padding: 1em;
+}
+
+.entwine-loader {
+    display: flex;
+
+    padding: 1em;
+
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: space-evenly;
+    gap: 0.25em;
+
+    color: var(--ui-text-color);
+}
+
+.entwine-loader>.row {
+    justify-content: flex-start;
+    align-items: space-around;
+    gap: 0.2em;
+}
+
+.entwine-loader>.row>input {
+    flex: 1;
+
+    border: 2px solid var(--ui-button-border-color);
+
+    background-color: var(--ui-background-color);
+    color: var(--ui-text-color);
+}
+
+.entwine-loader>#entwineShare {
+    flex: 1;
+
+    display: flex;
+    flex-direction: row;
+    gap: 0.2em;
+
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.entwine-loader>#entwineShare>button {
+    display: flex;
+    flex: 0 0 auto;
+    padding: 0.2em;
+    width: 1.5em;
+    height: 1.5em;
+}
+
+.entwine-loader>#entwineShare>button>img {
+    flex: 0 0 auto;
+    filter: invert(1);
+}
+
+.entwine-loader>#entwineShare>input {
+    flex: 1 1 auto;
+    height: 1em;
+
+    border: 2px dashed var(--ui-button-border-color);
+    background-color: var(--ui-background-color);
+    color: var(--ui-text-color);
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+}
+
+.stacking {
+    position: absolute;
+}
+
+.png-shadow {
+    filter: blur(2px);
+}
+
+.inline-divider {
+    flex: 1;
+    height: 2px;
+    border-radius: 40%;
+    background-color: var(--ui-text-color);
+    box-shadow: 0 0 1px 1px #000;
+}
+
+.divider {
+    flex: 0 0 auto;
+    height: 2px;
+    border-radius: 40%;
+    background-color: var(--ui-text-color);
+    box-shadow: 0 0 1px 1px #000;
+}
+
+.shadow {
+    box-shadow: 0 0 3px 3px #000;
 }

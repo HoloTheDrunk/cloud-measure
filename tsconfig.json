@@ -1,11 +1,27 @@
 {
     "compilerOptions": {
-        "outDir": "./dist/",
-        "sourceMap": true,
+        /* Type Checking */
+        "strict": false,
         "noImplicitAny": true,
-        "module": "es6",
-        "target": "es5",
+        /* Modules */
+        "baseUrl": ".",
+        "paths": {
+            "*": ["src/*"]
+        },
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        /* JavaScript Support */
         "allowJs": true,
-        "moduleResolution": "node"
+        "checkJs": false, // set to true for type checking of js files
+        /* Interop Constraints */
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "isolatedModules": true,
+        "downlevelIteration": true,
+        /* Language and Environment */
+        "target": "esnext",
+        /* Emit */
+        "outDir": "./dist/",
+        "sourceMap": true
     }
 }
