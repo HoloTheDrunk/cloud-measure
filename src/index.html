@@ -4,7 +4,6 @@
 <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="style.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>
         <%= htmlWebpackPlugin.options.title %>
@@ -26,7 +25,7 @@
             </div>
             <div class="divider"></div>
             <div id="entwineLoaderDiv" class="entwine-loader">
-                <span class="toolbox-title"><b>Entwine dataset url:</b></span>
+                <span class="toolbox-title"><b>Entwine loading</b></span>
                 <div class="row">
                     <input type="text" id="ept_url" />
                     <button id="entwineLoadButton">Load</button>
@@ -40,6 +39,14 @@
                     </button>
                     <input id="entwineShareOutput" type="text" readonly></input>
                 </div>
+            </div>
+            <div id="renderingControlsDiv" class="rendering-controls">
+                <span class="toolbox-title"><b>Cloud control</b></span>
+                <label class="checkmark-container">
+                    <input type="checkbox" id="freezeToggle" />
+                    <span class="checkmark"></span>
+                    <span class="checkmark"></span>Freeze
+                </label>
             </div>
             <div id="debugDiv" class="debug-area"></div>
             <div class="divider" style="margin: 1em"></div>
