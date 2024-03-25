@@ -39,7 +39,7 @@ body {
     justify-content: flex-start;
     align-items: stretch;
 
-    font-family: sans-serif;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 
     margin: auto;
     height: 100%;
@@ -210,6 +210,7 @@ body {
 
 .tools-panel>#toolGridDiv {
     flex: 0 1 auto;
+    padding-top: 1em;
 
     display: flex;
     flex-direction: row;
@@ -229,14 +230,22 @@ body {
     align-items: center;
 
     border: 0.5em solid var(--ui-button-border-color);
-    border-radius: 1.5em;
+    border-radius: 1.6em;
     transition-duration: 0.1s;
     transition-timing-function: ease-in;
     z-index: 2;
 }
 
+.tools-panel>#toolGridDiv button.selected {
+    border: 0.5em solid var(--ui-text-color);
+}
+
+.tools-panel>#toolGridDiv button.selected:active {
+    box-shadow: none;
+}
+
 .tools-panel>#toolGridDiv button:active {
-    box-shadow: 0em 0em 0px 2px;
+    box-shadow: 0em 0em 0em 0.2em;
     transition-duration: 0s;
 }
 

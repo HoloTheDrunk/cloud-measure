@@ -12,7 +12,87 @@ proj4.defs(
 
 let clickDown: MouseEvent | null = null;
 
+enum State {
+    Idle,
+    DistanceMeasure,
+    Slice,
+}
+
+interface UpdateableState {
+    update(data: any): void;
+}
+
+class StateTransition {
+    from: State;
+    to: State;
+    private transition: (appState: ApplicationState) => void;
+
+    constructor(
+        from: State,
+        to: State,
+        transition: (appState: ApplicationState) => void,
+    ) {
+        this.from = from;
+        this.to = to;
+        this.transition = transition;
+    }
+
+    public execute() {
+        let appState = ApplicationState.getInstance();
+        this.transition(appState);
+        appState.state = this.to;
+    }
+}
+
+class ApplicationState {
+    private static instance: ApplicationState;
+
+    state: State;
+    stateMap: Map<State, UpdateableState>;
+    transitions: StateTransition[];
+    selected: three.Object3D[];
+
+    private constructor() {
+        this.stateMap = new Map<State, UpdateableState>([
+            [
+                State.Idle,
+                {
+                    update: function(_data: any) {
+                        // Do nothing
+                    },
+                },
+            ],
+        ]);
+        this.state = State.Idle;
+        this.transitions = [
+            new StateTransition(
+                State.Idle,
+                State.DistanceMeasure,
+                function() { },
+            ),
+            new StateTransition(
+                State.DistanceMeasure,
+                State.Idle,
+                function() { },
+            ),
+            new StateTransition(State.Idle, State.Slice, function() { }),
+            new StateTransition(State.Slice, State.Idle, function() { }),
+        ];
+        this.selected = [];
+    }
+
+    public static getInstance(): ApplicationState {
+        if (!ApplicationState.instance) {
+            ApplicationState.instance = new ApplicationState();
+        }
+
+        return ApplicationState.instance;
+    }
+}
+
 function entwine() {
+    let appState = ApplicationState.getInstance();
+
     const eptUrl = document.getElementById("ept_url") as HTMLInputElement;
     eptUrl.value = "";
     const entwineShareOutput = document.getElementById(
@@ -75,6 +155,7 @@ function entwine() {
 
         view.addLayer(eptLayer).then(onLayerReady);
         viewerDiv.style.display = "";
+        freezeToggle.disabled = false;
 
         function clickDownHandler(event: MouseEvent) {
             clickDown = event;
@@ -87,22 +168,25 @@ function entwine() {
                 );
 
             if (clickDown && dist(clickDown, event) < 5) {
-                const pick = view.pickObjectsAt(event, 5, eptLayer);
+                type Picked = {
+                    object: three.Points;
+                    point: three.Vector3;
+                    index: number;
+                    distance: number;
+                    layer: itowns.Layer;
+                };
+
+                const pick = <Picked[]>view.pickObjectsAt(event, 5, eptLayer);
                 const closest = pick.sort((a, b) => a.distance - b.distance)[0];
 
                 if (closest) {
                     console.info(
-                        "Selected point #" +
-                        closest.index +
-                        " in position (" +
-                        closest.object.position.x +
-                        ", " +
-                        closest.object.position.y +
-                        ", " +
-                        closest.object.position.z +
-                        ") - node " +
-                        closest.object.userData.node.id,
+                        `Selected point #${closest.index} in position (${closest.point.x}, ${closest.point.y}, ${closest.point.z}) - node ${closest.object.userData.node.id}`,
                     );
+
+                    appState.selected.push(closest.object);
+
+                    appState.stateMap.get(appState.state)?.update(event);
                 }
             }
         }
@@ -156,12 +240,18 @@ function entwine() {
         .getElementById("entwineGrandLyonButton")
         .addEventListener("click", loadGrandLyon);
 
-    // ------ Additional UI
+    // ------ Cloud control
     const freezeToggle = document.getElementById(
         "freezeToggle",
     ) as HTMLInputElement;
 
     function updateFreeze() {
+        if (viewerDiv.style.display == "none") {
+            // setTimeout(() => (freezeToggle.checked = false), 100);
+            freezeToggle.checked = false;
+            return;
+        }
+
         eptLayer.frozen = freezeToggle.checked;
         view.notifyChange();
     }
@@ -169,72 +259,64 @@ function entwine() {
     freezeToggle.checked = false;
     freezeToggle.addEventListener("click", updateFreeze);
 
-    readEPTURL();
-}
+    // ------ Tools
+    const toolGridDiv = document.getElementById(
+        "toolGridDiv",
+    ) as HTMLDivElement;
 
-function c3dtiles() {
-    const placement = {
-        coord: new itowns.Coordinates("EPSG:4326", 3.3792, 44.3335, 844),
-        tilt: 22,
-        heading: -180,
-        range: 2840,
+    function clearSelectedTool() {
+        toolGridDiv.querySelector(".selected")?.classList.remove("selected");
+    }
+
+    function markSelectedTool(buttonId: string) {
+        clearSelectedTool();
+        toolGridDiv.querySelector(`#${buttonId}`).classList.add("selected");
+    }
+
+    function pickStateTool(state: State) {
+        appState.selected = [];
+        const transition = appState.transitions.find(
+            (t: StateTransition) => t.from == appState.state && t.to == state,
+        );
+        if (transition != null) transition.execute();
+        else {
+            console.warn(
+                `No transition found from ${State[appState.state]} to ${State[state]}, defaulting through Idle state.`,
+            );
+            [
+                [appState.state, State.Idle],
+                [State.Idle, state],
+            ].forEach(([from, to]) => {
+                appState.transitions
+                    .find((t) => t.from == from && t.to == to)
+                    .execute();
+            });
+        }
+    }
+
+    const buttonMapping = {
+        distanceMeasureButton: State.DistanceMeasure,
+        sliceButton: State.Slice,
     };
 
-    const view = new itowns.GlobeView(viewerDiv, placement);
-
-    const pointCloudSource = new itowns.C3DTilesSource({
-        url:
-            "https://raw.githubusercontent.com/iTowns/iTowns2-sample-data/" +
-            "master/3DTiles/lidar-hd-gorges-saint-chely-tarn/tileset.json",
-    });
-
-    function isPoints(obj: three.Object3D): obj is three.Points {
-        return (obj as three.Points).isPoints !== undefined;
+    for (const [buttonId, state] of Object.entries(buttonMapping)) {
+        document
+            .getElementById(buttonId)
+            .addEventListener("click", function() {
+                if (state == appState.state) {
+                    if (appState.state == State.Idle) return;
+                    console.log(`Switching to state ${State[State.Idle]}`);
+                    pickStateTool(State.Idle);
+                    clearSelectedTool();
+                    return;
+                }
+                console.log(`Switching to state ${State[state]}`);
+                pickStateTool(state);
+                markSelectedTool(buttonId);
+            });
     }
 
-    function updatePointCloudSize(
-        event: three.Event<string, itowns.C3DTilesLayer>,
-    ) {
-        const tileContent = event.target.object3d;
-        tileContent.traverse(function(obj: three.Object3D) {
-            if (isPoints(obj)) {
-                (obj.material as three.PointsMaterial).size = 3.0;
-            }
-        });
-    }
-
-    const pointCloudLayer = new itowns.C3DTilesLayer(
-        "gorges",
-        {
-            source: pointCloudSource,
-        },
-        view,
-    );
-
-    pointCloudLayer.addEventListener(
-        itowns.C3DTILES_LAYER_EVENTS.ON_TILE_CONTENT_LOADED,
-        updatePointCloudSize,
-    );
-
-    viewerDiv.addEventListener("click", function(event) {
-        let picked = pointCloudLayer.pickObjectsAt(
-            view,
-            view.eventToViewCoords(event),
-        );
-
-        if (picked.length > 0) {
-            console.log(picked);
-
-            let now = new Date(Date.now());
-            let hours = `${now.getHours()}`.padStart(2, "0");
-            let minutes = `${now.getMinutes()}`.padStart(2, "0");
-            let seconds = `${now.getSeconds()}`.padStart(2, "0");
-            let tt = `${hours}:${minutes}:${seconds}`;
-            debugDiv.innerHTML = `[${tt}] Picked`;
-        }
-    });
-
-    itowns.View.prototype.addLayer.call(view, pointCloudLayer);
+    readEPTURL();
 }
 
 entwine();
