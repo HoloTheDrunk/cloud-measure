@@ -166,6 +166,7 @@ function entwine() {
         view.notifyChange();
     }
 
+    freezeToggle.checked = false;
     freezeToggle.addEventListener("click", updateFreeze);
 
     readEPTURL();

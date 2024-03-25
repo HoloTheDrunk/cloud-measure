@@ -196,6 +196,60 @@ body {
     padding: 1em;
 }
 
+.tools-panel {
+    flex: 0 1 auto;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+
+    gap: 0.5em;
+    padding: 1em;
+}
+
+.tools-panel>#toolGridDiv {
+    flex: 0 1 auto;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+
+    gap: 0.5em;
+}
+
+.tools-panel>#toolGridDiv button {
+    flex: 0 1 auto;
+    padding: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border: 0.5em solid var(--ui-button-border-color);
+    border-radius: 1.5em;
+    transition-duration: 0.1s;
+    transition-timing-function: ease-in;
+    z-index: 2;
+}
+
+.tools-panel>#toolGridDiv button:active {
+    box-shadow: 0em 0em 0px 2px;
+    transition-duration: 0s;
+}
+
+.tools-panel>#toolGridDiv img {
+    transition-duration: 0.2s;
+    transition-timing-function: ease-in-out;
+    z-index: 1;
+}
+
+.tools-panel>#toolGridDiv img:hover {
+    filter: hue-rotate(15deg);
+}
+
 .row {
     display: flex;
     flex-direction: row;
