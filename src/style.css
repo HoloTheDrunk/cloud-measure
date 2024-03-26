@@ -188,7 +188,7 @@ body {
 
 .rendering-controls {
     display: flex;
-    flex: 1;
+    flex: 0 1 auto;
     flex-direction: column;
     justify-content: flex-start;
     align-items: stretch;

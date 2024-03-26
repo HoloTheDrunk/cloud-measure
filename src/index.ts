@@ -1,10 +1,33 @@
 import * as itowns from "itowns";
 import * as three from "three";
 import proj4 from "proj4";
+import {
+    State,
+    ApplicationState,
+    StateTransition,
+    UpdateableState,
+} from "./state";
+import dom from "./dom";
 
-const viewerDiv = document.getElementById("viewerDiv") as HTMLDivElement;
-const debugDiv = document.getElementById("debugDiv") as HTMLDivElement;
+// Button mapping
+const buttonMapping = {
+    distanceMeasureButton: State.DistanceMeasure,
+    sliceButton: State.Slice,
+};
 
+function disableButtons(disabled: boolean) {
+    Object.keys(buttonMapping)
+        .map((id) => document.getElementById(id) as HTMLButtonElement)
+        .forEach((button) => {
+            button.disabled = disabled;
+        });
+}
+
+// Resets to match the initial state
+dom.eptUrl.value = "";
+dom.entwineShareOutput.value = "";
+
+// Business logic ==========================
 proj4.defs(
     "EPSG:3946",
     "+proj=lcc +lat_0=46 +lon_0=3 +lat_1=45.25 +lat_2=46.75 +x_0=1700000 +y_0=5200000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs",
@@ -12,311 +35,242 @@ proj4.defs(
 
 let clickDown: MouseEvent | null = null;
 
-enum State {
-    Idle,
-    DistanceMeasure,
-    Slice,
+let eptSource: itowns.EntwinePointTileSource;
+let eptLayer: itowns.EntwinePointTileLayer;
+
+const view = new itowns.View("EPSG:3946", dom.viewerDiv);
+view.mainLoop.gfxEngine.renderer.setClearColor(three.Color.NAMES.black, 1.0);
+
+const controls = new itowns.PlanarControls(view as itowns.PlanarView);
+
+// Interacting with the view with no data loaded causes errors
+dom.viewerDiv.style.display = "none";
+disableButtons(true);
+
+function onLayerReady() {
+    const lookAt = new three.Vector3();
+    const size = new three.Vector3();
+    eptLayer.root.bbox.getSize(size);
+    eptLayer.root.bbox.getCenter(lookAt);
+
+    (view.camera3D as three.PerspectiveCamera).far = size.length() * 2.0;
+
+    controls.groundLevel = eptLayer.root.bbox.min.z;
+    const position = eptLayer.root.bbox.min
+        .clone()
+        .add(size.multiply({ x: 0, y: 0, z: size.x / size.z }));
+
+    view.camera3D.position.copy(position);
+    view.camera3D.lookAt(lookAt);
+    (view.camera3D as itowns.OrientedImageCamera).updateProjectionMatrix();
+
+    view.notifyChange(view.camera3D);
 }
 
-interface UpdateableState {
-    update(data: any): void;
-}
+function loadEPT(url: string, options: any) {
+    eptSource = new itowns.EntwinePointTileSource({ url });
 
-class StateTransition {
-    from: State;
-    to: State;
-    private transition: (appState: ApplicationState) => void;
-
-    constructor(
-        from: State,
-        to: State,
-        transition: (appState: ApplicationState) => void,
-    ) {
-        this.from = from;
-        this.to = to;
-        this.transition = transition;
+    if (eptLayer) {
+        view.removeLayer("Entwine Point Tile");
+        view.notifyChange();
+        eptLayer.delete();
     }
 
-    public execute() {
-        let appState = ApplicationState.getInstance();
-        this.transition(appState);
-        appState.state = this.to;
-    }
-}
+    const config = {
+        source: eptSource,
+        crs: view.referenceCrs,
+        ...options,
+    };
+    eptLayer = new itowns.EntwinePointTileLayer("Entwine Point Tile", config);
 
-class ApplicationState {
-    private static instance: ApplicationState;
+    view.addLayer(eptLayer).then(onLayerReady);
+    dom.viewerDiv.style.display = "";
+    dom.freezeToggle.disabled = false;
+    disableButtons(false);
 
-    state: State;
-    stateMap: Map<State, UpdateableState>;
-    transitions: StateTransition[];
-    selected: three.Object3D[];
-
-    private constructor() {
-        this.stateMap = new Map<State, UpdateableState>([
-            [
-                State.Idle,
-                {
-                    update: function(_data: any) {
-                        // Do nothing
-                    },
-                },
-            ],
-        ]);
-        this.state = State.Idle;
-        this.transitions = [
-            new StateTransition(
-                State.Idle,
-                State.DistanceMeasure,
-                function() { },
-            ),
-            new StateTransition(
-                State.DistanceMeasure,
-                State.Idle,
-                function() { },
-            ),
-            new StateTransition(State.Idle, State.Slice, function() { }),
-            new StateTransition(State.Slice, State.Idle, function() { }),
-        ];
-        this.selected = [];
+    function clickDownHandler(event: MouseEvent) {
+        clickDown = event;
     }
 
-    public static getInstance(): ApplicationState {
-        if (!ApplicationState.instance) {
-            ApplicationState.instance = new ApplicationState();
-        }
+    function clickUpHandler(event: MouseEvent) {
+        const dist = (a: MouseEvent, b: MouseEvent) =>
+            Math.sqrt(
+                (a.clientX - b.clientX) ** 2 + (a.clientY - b.clientY) ** 2,
+            );
 
-        return ApplicationState.instance;
-    }
-}
+        if (clickDown && dist(clickDown, event) < 5) {
+            type Picked = {
+                object: three.Points;
+                point: three.Vector3;
+                index: number;
+                distance: number;
+                layer: itowns.Layer;
+            };
 
-function entwine() {
-    let appState = ApplicationState.getInstance();
+            const pick = <Picked[]>view.pickObjectsAt(event, 5, eptLayer);
+            const closest = pick
+                .filter((o) => o != null)
+                .sort((a, b) => a.distance - b.distance)[0];
 
-    const eptUrl = document.getElementById("ept_url") as HTMLInputElement;
-    eptUrl.value = "";
-    const entwineShareOutput = document.getElementById(
-        "entwineShareOutput",
-    ) as HTMLInputElement;
-    entwineShareOutput.value = "";
-
-    let eptSource: itowns.EntwinePointTileSource;
-    let eptLayer: itowns.EntwinePointTileLayer;
-
-    const view = new itowns.View("EPSG:3946", viewerDiv);
-    view.mainLoop.gfxEngine.renderer.setClearColor(
-        three.Color.NAMES.black,
-        1.0,
-    );
-
-    const controls = new itowns.PlanarControls(view as itowns.PlanarView);
-
-    // Interacting with the view with no data loaded causes errors
-    viewerDiv.style.display = "none";
-
-    function onLayerReady() {
-        const lookAt = new three.Vector3();
-        const size = new three.Vector3();
-        eptLayer.root.bbox.getSize(size);
-        eptLayer.root.bbox.getCenter(lookAt);
-
-        (view.camera3D as three.PerspectiveCamera).far = size.length() * 2.0;
-
-        controls.groundLevel = eptLayer.root.bbox.min.z;
-        const position = eptLayer.root.bbox.min
-            .clone()
-            .add(size.multiply({ x: 0, y: 0, z: size.x / size.z }));
-
-        view.camera3D.position.copy(position);
-        view.camera3D.lookAt(lookAt);
-        (view.camera3D as itowns.OrientedImageCamera).updateProjectionMatrix();
-
-        view.notifyChange(view.camera3D);
-    }
-
-    function loadEPT(url: string, options: any) {
-        eptSource = new itowns.EntwinePointTileSource({ url });
-
-        if (eptLayer) {
-            view.removeLayer("Entwine Point Tile");
-            view.notifyChange();
-            eptLayer.delete();
-        }
-
-        const config = {
-            source: eptSource,
-            crs: view.referenceCrs,
-            ...options,
-        };
-        eptLayer = new itowns.EntwinePointTileLayer(
-            "Entwine Point Tile",
-            config,
-        );
-
-        view.addLayer(eptLayer).then(onLayerReady);
-        viewerDiv.style.display = "";
-        freezeToggle.disabled = false;
-
-        function clickDownHandler(event: MouseEvent) {
-            clickDown = event;
-        }
-
-        function clickUpHandler(event: MouseEvent) {
-            const dist = (a: MouseEvent, b: MouseEvent) =>
-                Math.sqrt(
-                    (a.clientX - b.clientX) ** 2 + (a.clientY - b.clientY) ** 2,
+            if (closest) {
+                console.info(
+                    `Selected point #${closest.index} in position (${closest.point.x}, ${closest.point.y}, ${closest.point.z}) - node ${closest.object.userData.node.id}`,
                 );
 
-            if (clickDown && dist(clickDown, event) < 5) {
-                type Picked = {
-                    object: three.Points;
-                    point: three.Vector3;
-                    index: number;
-                    distance: number;
-                    layer: itowns.Layer;
-                };
+                appState.selected.push(closest.object);
 
-                const pick = <Picked[]>view.pickObjectsAt(event, 5, eptLayer);
-                const closest = pick.sort((a, b) => a.distance - b.distance)[0];
-
-                if (closest) {
-                    console.info(
-                        `Selected point #${closest.index} in position (${closest.point.x}, ${closest.point.y}, ${closest.point.z}) - node ${closest.object.userData.node.id}`,
-                    );
-
-                    appState.selected.push(closest.object);
-
-                    appState.stateMap.get(appState.state)?.update(event);
-                }
+                appState.stateMap.get(appState.state)?.update(event);
             }
         }
-
-        view.domElement.addEventListener("mousedown", clickDownHandler);
-        view.domElement.addEventListener("mouseup", clickUpHandler);
     }
 
-    function readEPTURL() {
-        const urlParams = new URL(location.href).searchParams;
-        let url = eptUrl.value || urlParams.get("ept");
+    view.domElement.addEventListener("mousedown", clickDownHandler);
+    view.domElement.addEventListener("mouseup", clickUpHandler);
+}
 
-        if (url) {
-            const options: any = {};
-            for (const key of urlParams.keys()) {
-                if (key !== "ept") {
-                    options[key] = parseInt(urlParams.get(key), 10);
-                }
+function readEPTURL() {
+    const urlParams = new URL(location.href).searchParams;
+    let url = dom.eptUrl.value || urlParams.get("ept");
+
+    if (url) {
+        const options: any = {};
+        for (const key of urlParams.keys()) {
+            if (key !== "ept") {
+                options[key] = parseInt(urlParams.get(key), 10);
             }
-            loadEPT(url, options);
-
-            const entwineShare = document.getElementById("entwineShare");
-            if (entwineShare.hasAttribute("disabled")) {
-                entwineShare.removeAttribute("disabled");
-            }
-            document
-                .getElementById("entwineShareButton")
-                .addEventListener("click", function() {
-                    const url =
-                        location.href.replace(location.search, "") +
-                        "?ept=" +
-                        eptUrl.value;
-                    entwineShareOutput.value = url;
-                });
-
-            eptUrl.value = url;
         }
-    }
+        loadEPT(url, options);
 
-    document
-        .getElementById("entwineLoadButton")
-        .addEventListener("click", readEPTURL);
-
-    function loadGrandLyon() {
-        eptUrl.value =
-            "https://download.data.grandlyon.com/files/grandlyon/imagerie/mnt2018/lidar/ept/";
-        readEPTURL();
-    }
-
-    document
-        .getElementById("entwineGrandLyonButton")
-        .addEventListener("click", loadGrandLyon);
-
-    // ------ Cloud control
-    const freezeToggle = document.getElementById(
-        "freezeToggle",
-    ) as HTMLInputElement;
-
-    function updateFreeze() {
-        if (viewerDiv.style.display == "none") {
-            // setTimeout(() => (freezeToggle.checked = false), 100);
-            freezeToggle.checked = false;
-            return;
+        if (dom.entwineShare.hasAttribute("disabled")) {
+            dom.entwineShare.removeAttribute("disabled");
         }
+        dom.entwineShareButton.addEventListener("click", function() {
+            const url = `${location.href.replace(location.search, "")}?ept=${dom.eptUrl.value}`;
+            dom.entwineShareOutput.value = url;
+        });
 
-        eptLayer.frozen = freezeToggle.checked;
-        view.notifyChange();
+        dom.eptUrl.value = url;
     }
+}
 
-    freezeToggle.checked = false;
-    freezeToggle.addEventListener("click", updateFreeze);
+dom.entwineLoadButton.addEventListener("click", readEPTURL);
 
-    // ------ Tools
-    const toolGridDiv = document.getElementById(
-        "toolGridDiv",
-    ) as HTMLDivElement;
-
-    function clearSelectedTool() {
-        toolGridDiv.querySelector(".selected")?.classList.remove("selected");
-    }
-
-    function markSelectedTool(buttonId: string) {
-        clearSelectedTool();
-        toolGridDiv.querySelector(`#${buttonId}`).classList.add("selected");
-    }
-
-    function pickStateTool(state: State) {
-        appState.selected = [];
-        const transition = appState.transitions.find(
-            (t: StateTransition) => t.from == appState.state && t.to == state,
-        );
-        if (transition != null) transition.execute();
-        else {
-            console.warn(
-                `No transition found from ${State[appState.state]} to ${State[state]}, defaulting through Idle state.`,
-            );
-            [
-                [appState.state, State.Idle],
-                [State.Idle, state],
-            ].forEach(([from, to]) => {
-                appState.transitions
-                    .find((t) => t.from == from && t.to == to)
-                    .execute();
-            });
-        }
-    }
-
-    const buttonMapping = {
-        distanceMeasureButton: State.DistanceMeasure,
-        sliceButton: State.Slice,
-    };
-
-    for (const [buttonId, state] of Object.entries(buttonMapping)) {
-        document
-            .getElementById(buttonId)
-            .addEventListener("click", function() {
-                if (state == appState.state) {
-                    if (appState.state == State.Idle) return;
-                    console.log(`Switching to state ${State[State.Idle]}`);
-                    pickStateTool(State.Idle);
-                    clearSelectedTool();
-                    return;
-                }
-                console.log(`Switching to state ${State[state]}`);
-                pickStateTool(state);
-                markSelectedTool(buttonId);
-            });
-    }
-
+function loadGrandLyon() {
+    dom.eptUrl.value =
+        "https://download.data.grandlyon.com/files/grandlyon/imagerie/mnt2018/lidar/ept/";
     readEPTURL();
 }
 
-entwine();
+dom.entwineGrandLyonButton.addEventListener("click", loadGrandLyon);
+
+// ------ Cloud control
+function updateFreeze() {
+    if (dom.viewerDiv.style.display == "none") {
+        dom.freezeToggle.checked = false;
+        return;
+    }
+
+    eptLayer.frozen = dom.freezeToggle.checked;
+    view.notifyChange();
+}
+
+dom.freezeToggle.checked = false;
+dom.freezeToggle.addEventListener("click", updateFreeze);
+
+// ------ Application state
+let appState = ApplicationState.getInstance();
+appState.stateMap = new Map<State, UpdateableState>([
+    [State.Idle, { update: function() { } }],
+    [
+        State.DistanceMeasure,
+        {
+            update: function() {
+                if (appState.selected.length < 2) return;
+
+                const [a, b] = appState.selected.slice(0, 2);
+                const aPos = a.position;
+                const bPos = b.position;
+                const distance = aPos.distanceTo(bPos);
+
+                console.log(`Distance between points: ${distance}`);
+
+                appState.selected = [];
+            },
+        },
+    ],
+    [
+        State.Slice,
+        {
+            update: function() {
+                /*TODO: implement slicing (requires new panel)*/
+                if (appState.selected.length < 2) return;
+            },
+        },
+    ],
+]);
+appState.transitions = [
+    // DistanceMeasure
+    new StateTransition(State.Idle, State.DistanceMeasure, function() { }),
+    new StateTransition(State.DistanceMeasure, State.Idle, function() { }),
+    // Slice
+    new StateTransition(State.Idle, State.Slice, function() {
+        dom.freezeToggle.checked = true;
+        updateFreeze();
+    }),
+    new StateTransition(State.Slice, State.Idle, function() { }),
+];
+appState.validate();
+
+// ------ Tools
+function clearSelectedTool() {
+    dom.toolGridDiv.querySelector(".selected")?.classList.remove("selected");
+}
+
+function markSelectedTool(buttonId: string) {
+    clearSelectedTool();
+    dom.toolGridDiv.querySelector(`#${buttonId}`).classList.add("selected");
+}
+
+function pickStateTool(state: State) {
+    appState.selected = [];
+    const transition = appState.transitions.find(
+        (t: StateTransition) => t.from == appState.state && t.to == state,
+    );
+    if (transition != undefined) transition.execute();
+    else {
+        console.warn(
+            `No transition found from ${State[appState.state]} to ${State[state]}, defaulting through Idle state.`,
+        );
+        [
+            [appState.state, State.Idle],
+            [State.Idle, state],
+        ].forEach(([from, to]) => {
+            appState.transitions
+                .find((t) => t.from == from && t.to == to)
+                .execute();
+        });
+    }
+}
+
+Object.keys(buttonMapping)
+    .map((id) => document.getElementById(id) as HTMLButtonElement)
+    .forEach((button) => {
+        button.disabled = true;
+    });
+
+for (const [buttonId, state] of Object.entries(buttonMapping)) {
+    document.getElementById(buttonId).addEventListener("click", function() {
+        if (state == appState.state) {
+            if (appState.state == State.Idle) return;
+            console.log(`Switching to state ${State[State.Idle]}`);
+            pickStateTool(State.Idle);
+            clearSelectedTool();
+            return;
+        }
+        console.log(`Switching to state ${State[state]}`);
+        pickStateTool(state);
+        markSelectedTool(buttonId);
+    });
+}
+
+readEPTURL();
