@@ -207,6 +207,7 @@ body {
 
 .tools-panel>#toolGridDiv {
     flex: 0 1 auto;
+    align-self: center;
     padding-top: 1em;
 
     display: flex;
