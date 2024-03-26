@@ -22,7 +22,10 @@ const freezeToggle = document.getElementById(
 
 const toolGridDiv = document.getElementById("toolGridDiv") as HTMLDivElement;
 
-const debugDiv = document.getElementById("debugDiv") as HTMLDivElement;
+const outputDiv = document.getElementById("outputDiv") as HTMLDivElement;
+const toolOutputDiv = document.getElementById(
+    "toolOutputDiv",
+) as HTMLDivElement;
 
 export default {
     viewerDiv,
@@ -34,5 +37,6 @@ export default {
     entwineShareOutput,
     freezeToggle,
     toolGridDiv,
-    debugDiv,
+    outputDiv,
+    toolOutputDiv,
 };

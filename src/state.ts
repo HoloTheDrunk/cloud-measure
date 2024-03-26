@@ -1,4 +1,5 @@
 import * as three from "three";
+import { Card } from "./card";
 import dom from "./dom";
 
 enum State {
@@ -33,13 +34,21 @@ class StateTransition {
     }
 }
 
+export type Picked = {
+    object: three.Object3D;
+    position: three.Vector3;
+};
+
 class ApplicationState {
     private static instance: ApplicationState;
 
     state: State;
     stateMap: Map<State, UpdateableState>;
     transitions: StateTransition[];
-    selected: three.Object3D[];
+    selected: Picked[];
+
+    private cardCount: number = 0;
+    cards: Card[] = [];
 
     private constructor() {
         this.state = State.Idle;
@@ -70,6 +79,33 @@ class ApplicationState {
                 );
             }
         });
+    }
+
+    public addCard(domElement: Element) {
+        dom.toolOutputDiv.appendChild(domElement);
+
+        let metadata = (() => {
+            switch (this.state) {
+                case State.Idle:
+                    return {};
+                case State.DistanceMeasure:
+                    return { points: this.selected.slice(0, 2) };
+                case State.Slice:
+                    // TODO:
+                    return {};
+            }
+        })();
+
+        this.cards.push(
+            new Card(this.cardCount++, domElement, metadata, (id) =>
+                this.deleteCard(id),
+            ),
+        );
+    }
+
+    public deleteCard(id: number) {
+        this.cards = this.cards.filter((card) => card.id != id);
+        console.log(this.cards);
     }
 
     public static getInstance(): ApplicationState {

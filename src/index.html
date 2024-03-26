@@ -44,7 +44,8 @@
                 <label class="checkmark-container">
                     <input type="checkbox" id="freezeToggle" />
                     <span class="checkmark"></span>
-                    <span class="checkmark"></span>Freeze
+                    <span class="checkmark"></span>
+                    Freeze
                 </label>
             </div>
             <div id="toolsPanelDiv" class="tools-panel">
@@ -57,17 +58,12 @@
                     <button id="sliceButton">
                         <img draggable="false" src="assets/icons/slice.svg" alt="Measure distance between points" />
                     </button>
-                    <button>
-                        <img draggable="false" src="assets/icons/empty.svg" alt="Measure distance between points" />
-                        <span style="position: absolute; z-index: 10; pointer-events: none">placeholder</span>
-                    </button>
-                    <button>
-                        <img draggable="false" src="assets/icons/empty.svg" alt="Measure distance between points" />
-                        <span style="position: absolute; z-index: 10; pointer-events: none">placeholder</span>
-                    </button>
                 </div>
             </div>
-            <div id="debugDiv" class="debug-area"></div>
+            <div id="outputDiv" class="debug-area">
+                <span class="toolbox-title"><b>Output</b></span>
+                <div id="toolOutputDiv"></div>
+            </div>
             <div class="divider" style="margin: 1em"></div>
         </div>
         <!-- <div class="inspector ui-container"></div> -->

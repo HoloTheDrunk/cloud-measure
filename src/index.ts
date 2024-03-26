@@ -8,6 +8,7 @@ import {
     UpdateableState,
 } from "./state";
 import dom from "./dom";
+import { Card } from "./card";
 
 // Button mapping
 const buttonMapping = {
@@ -30,7 +31,9 @@ dom.entwineShareOutput.value = "";
 // Business logic ==========================
 proj4.defs(
     "EPSG:3946",
-    "+proj=lcc +lat_0=46 +lon_0=3 +lat_1=45.25 +lat_2=46.75 +x_0=1700000 +y_0=5200000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs",
+    "+proj=lcc +lat_0=46 +lon_0=3 +lat_1=45.25" +
+    "+lat_2=46.75 +x_0=1700000 +y_0=5200000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0" +
+    "+units=m +no_defs +type=crs",
 );
 
 let clickDown: MouseEvent | null = null;
@@ -117,7 +120,10 @@ function loadEPT(url: string, options: any) {
                     `Selected point #${closest.index} in position (${closest.point.x}, ${closest.point.y}, ${closest.point.z}) - node ${closest.object.userData.node.id}`,
                 );
 
-                appState.selected.push(closest.object);
+                appState.selected.push({
+                    object: closest.object,
+                    position: closest.point,
+                });
 
                 appState.stateMap.get(appState.state)?.update(event);
             }
@@ -187,12 +193,14 @@ appState.stateMap = new Map<State, UpdateableState>([
             update: function() {
                 if (appState.selected.length < 2) return;
 
-                const [a, b] = appState.selected.slice(0, 2);
-                const aPos = a.position;
-                const bPos = b.position;
-                const distance = aPos.distanceTo(bPos);
+                const [a, b] = appState.selected
+                    .slice(0, 2)
+                    .map((picked) => picked.position);
+                const distance = a.distanceTo(b);
 
-                console.log(`Distance between points: ${distance}`);
+                appState.addCard(
+                    Card.createElement("Distance Measure", `${distance / 10}m`),
+                );
 
                 appState.selected = [];
             },
@@ -272,5 +280,14 @@ for (const [buttonId, state] of Object.entries(buttonMapping)) {
         markSelectedTool(buttonId);
     });
 }
+
+// TESTING ==========================
+
+// dom.toolOutputDiv.appendChild(
+//     createCardElement("Welcome", "Load a dataset to begin."),
+// );
+appState.addCard(Card.createElement("Welcome", "Load a dataset to begin."));
+
+// TESTING ==========================
 
 readEPTURL();
