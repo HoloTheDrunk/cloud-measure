@@ -105,7 +105,6 @@ class ApplicationState {
 
     public deleteCard(id: number) {
         this.cards = this.cards.filter((card) => card.id != id);
-        console.log(this.cards);
     }
 
     public static getInstance(): ApplicationState {

@@ -44,6 +44,19 @@ let eptLayer: itowns.EntwinePointTileLayer;
 const view = new itowns.View("EPSG:3946", dom.viewerDiv);
 view.mainLoop.gfxEngine.renderer.setClearColor(three.Color.NAMES.black, 1.0);
 
+new ResizeObserver(() => {
+    const rendererSize = view.renderer.getSize(new three.Vector2());
+    const divSize = new three.Vector2(
+        dom.viewerDiv.clientWidth,
+        // HACK: Figure out why this offset exists
+        dom.viewerDiv.clientHeight - 4,
+    );
+
+    console.log(rendererSize, divSize);
+
+    if (!rendererSize.equals(divSize)) view.resize(divSize.x, divSize.y);
+}).observe(dom.viewerDiv);
+
 const controls = new itowns.PlanarControls(view as itowns.PlanarView);
 
 // Interacting with the view with no data loaded causes errors
@@ -223,6 +236,7 @@ appState.transitions = [
     // Slice
     new StateTransition(State.Idle, State.Slice, function() {
         dom.freezeToggle.checked = true;
+        dom.sliceViewerDiv.style.display = "flex";
         updateFreeze();
     }),
     new StateTransition(State.Slice, State.Idle, function() { }),
@@ -239,7 +253,7 @@ function markSelectedTool(buttonId: string) {
     dom.toolGridDiv.querySelector(`#${buttonId}`).classList.add("selected");
 }
 
-function pickStateTool(state: State) {
+function pickToolState(state: State) {
     appState.selected = [];
     const transition = appState.transitions.find(
         (t: StateTransition) => t.from == appState.state && t.to == state,
@@ -260,32 +274,31 @@ function pickStateTool(state: State) {
     }
 }
 
+// Disable tools before loading a dataset
 Object.keys(buttonMapping)
     .map((id) => document.getElementById(id) as HTMLButtonElement)
     .forEach((button) => {
         button.disabled = true;
     });
 
+// Add tool button click listeners
 for (const [buttonId, state] of Object.entries(buttonMapping)) {
     document.getElementById(buttonId).addEventListener("click", function() {
         if (state == appState.state) {
             if (appState.state == State.Idle) return;
             console.log(`Switching to state ${State[State.Idle]}`);
-            pickStateTool(State.Idle);
+            pickToolState(State.Idle);
             clearSelectedTool();
             return;
         }
         console.log(`Switching to state ${State[state]}`);
-        pickStateTool(state);
+        pickToolState(state);
         markSelectedTool(buttonId);
     });
 }
 
 // TESTING ==========================
 
-// dom.toolOutputDiv.appendChild(
-//     createCardElement("Welcome", "Load a dataset to begin."),
-// );
 appState.addCard(Card.createElement("Welcome", "Load a dataset to begin."));
 
 // TESTING ==========================

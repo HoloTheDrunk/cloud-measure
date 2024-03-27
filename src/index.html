@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="assets/page_icon.svg">
     <link rel="stylesheet" type="text/css" href="style.css" />
 
     <title>
@@ -14,6 +15,10 @@
     <div class="app">
         <div class="center-area">
             <div id="viewerDiv" class="viewer"></div>
+            <div id="sliceViewerDiv" class="slice-viewer ui-container shadow">
+                <span class="toolbox-title"><b>Slice view</b></span>
+                <button class="close-button">X</button>
+            </div>
         </div>
         <div class="toolbox ui-container shadow">
             <div class="header ui-container">
@@ -61,7 +66,11 @@
                 </div>
             </div>
             <div id="outputDiv" class="debug-area">
-                <span class="toolbox-title"><b>Output</b></span>
+                <span class="toolbox-title">
+                    <b>Output</b>
+                    <img draggable="false" src="assets/icons/card_controls.svg" />
+                </span>
+
                 <div id="toolOutputDiv"></div>
             </div>
             <div class="divider" style="margin: 1em"></div>

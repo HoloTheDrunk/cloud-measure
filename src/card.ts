@@ -64,7 +64,7 @@ export class Card {
     public remove() {
         this.callbacks.onDelete(this);
         this.domElement.remove();
-        this.deletionCallback(this.metadata.id);
+        this.deletionCallback(this.id);
     }
 
     private onClick(event: MouseEvent) {
