@@ -82,7 +82,7 @@ class ApplicationState {
     }
 
     public addCard(domElement: Element) {
-        dom.toolOutputDiv.appendChild(domElement);
+        dom.toolOutputDiv.prepend(domElement);
 
         let metadata = (() => {
             switch (this.state) {
