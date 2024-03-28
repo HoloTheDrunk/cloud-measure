@@ -22,6 +22,12 @@ const entwineShareOutput = document.getElementById(
 const freezeToggle = document.getElementById(
     "freezeToggle",
 ) as HTMLInputElement;
+const renderingModeColor = document.getElementById(
+    "renderingModeColor",
+) as HTMLInputElement;
+const renderingModeClassification = document.getElementById(
+    "renderingModeClassification",
+) as HTMLInputElement;
 
 const toolGridDiv = document.getElementById("toolGridDiv") as HTMLDivElement;
 
@@ -40,6 +46,8 @@ export default {
     entwineShareButton,
     entwineShareOutput,
     freezeToggle,
+    renderingModeColor,
+    renderingModeClassification,
     toolGridDiv,
     outputDiv,
     toolOutputDiv,

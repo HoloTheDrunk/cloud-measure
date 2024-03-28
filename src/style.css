@@ -5,6 +5,7 @@
 
     --ui-button-border-color: #4f4f5f;
     --ui-button-hover-background-color: #5f5f6f;
+    --ui-active-check-color: #2196f3;
 }
 
 * {
@@ -96,11 +97,13 @@ body {
 
 .slice-viewer {
     flex: 1;
-    display: none;
+    display: flex;
 
-    flex-direction: row;
+    flex-direction: column;
     justify-content: flex-start;
     align-items: stretch;
+
+    gap: 0.5em;
 
     position: absolute;
     margin: auto;
@@ -109,7 +112,40 @@ body {
     width: 100%;
     z-index: 1;
 
+    box-sizing: border-box;
+    padding: 0.5em;
+
     background-color: var(--ui-background-color);
+}
+
+.close-button {
+    display: block;
+    right: 0.5em;
+    top: 0.5em;
+    width: 2em;
+    height: 2em;
+}
+
+.flex-close-button {
+    flex: 0;
+    justify-self: right;
+    width: 2em;
+    height: 2em;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#sliceViewerGraphDiv {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1em;
+    border: .2em solid var(--ui-button-border-color);
+    /* border-width: 0 0 .2em .2em; */
+    background-color: #0007
 }
 
 .toolbox {
@@ -212,6 +248,22 @@ body {
     align-items: stretch;
     gap: 0.5em;
     padding: 1em;
+}
+
+.rendering-controls>#renderingMode {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.rendering-controls>.row {
+    justify-content: flex-start;
+}
+
+.rendering-controls>.row>.column:nth-of-type(n) {
+    width: 50%;
 }
 
 .tools-panel {
@@ -455,10 +507,66 @@ body {
     border-width: 0 0.2em 0.2em 0;
 }
 
-.close-button {
+.radio-container input {
     position: absolute;
-    right: 0.5em;
-    top: 0.5em;
-    width: 2em;
-    height: 2em;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+    gap: 0.5em;
 }
+
+.radio {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1em;
+    width: 1em;
+    background-color: none;
+}
+
+.radio-container span:not(.radio) {
+    left: 1.5em;
+}
+
+.radio-container input~.radio:nth-of-type(1) {
+    background-color: var(--ui-button-hover-background-color);
+}
+
+.radio-container:hover input~.radio:nth-of-type(1) {
+    background-color: var(--ui-text-color);
+}
+
+.radio-container input:checked~.radio:nth-of-type(2) {
+    background-color: var(--ui-active-check-color);
+}
+
+.radio:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.radio-container input:checked~.radio:after {
+    display: block;
+    background-color: var(--ui-active-check-color);
+}
+
+.radio-container .radio:after {
+    left: 0.15em;
+    bottom: 0.15em;
+    width: 0.7em;
+    height: 0.7em;
+}
+
+/* .radio-container .radio:nth-of-type(1):after { */
+/*     /* translate: -0.1em 0.1em; */
+*/
+/*     border: solid var(--ui-background-color); */
+/*     border-width: 0 0.4em 0.4em 0; */
+/* } */
+/**/
+/* .radio-container .radio:nth-of-type(2):after { */
+/*     border: solid white; */
+/*     border-width: 0 0.2em 0.2em 0; */
+/* } */

@@ -24,9 +24,15 @@ function disableButtons(disabled: boolean) {
         });
 }
 
+function resetChecks() {
+    dom.freezeToggle.checked = false;
+    dom.renderingModeColor.checked = true;
+}
+
 // Resets to match the initial state
 dom.eptUrl.value = "";
 dom.entwineShareOutput.value = "";
+resetChecks();
 
 // Business logic ==========================
 proj4.defs(
@@ -35,8 +41,6 @@ proj4.defs(
     "+lat_2=46.75 +x_0=1700000 +y_0=5200000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0" +
     "+units=m +no_defs +type=crs",
 );
-
-let clickDown: MouseEvent | null = null;
 
 let eptSource: itowns.EntwinePointTileSource;
 let eptLayer: itowns.EntwinePointTileLayer;
@@ -52,8 +56,6 @@ new ResizeObserver(() => {
         dom.viewerDiv.clientHeight - 4,
     );
 
-    console.log(rendererSize, divSize);
-
     if (!rendererSize.equals(divSize)) view.resize(divSize.x, divSize.y);
 }).observe(dom.viewerDiv);
 
@@ -62,6 +64,48 @@ const controls = new itowns.PlanarControls(view as itowns.PlanarView);
 // Interacting with the view with no data loaded causes errors
 dom.viewerDiv.style.display = "none";
 disableButtons(true);
+
+let clickDown: MouseEvent | null = null;
+
+function clickDownHandler(event: MouseEvent) {
+    clickDown = event;
+}
+
+function clickUpHandler(event: MouseEvent) {
+    const dist = (a: MouseEvent, b: MouseEvent) =>
+        Math.sqrt((a.clientX - b.clientX) ** 2 + (a.clientY - b.clientY) ** 2);
+
+    if (
+        clickDown &&
+        dist(clickDown, event) < Math.min((5 * window.outerWidth) / 1000, 5)
+    ) {
+        type Picked = {
+            object: three.Points;
+            point: three.Vector3;
+            index: number;
+            distance: number;
+            layer: itowns.Layer;
+        };
+
+        const pick = <Picked[]>view.pickObjectsAt(event, 5, eptLayer);
+        const closest = pick
+            .filter((o) => o != null)
+            .sort((a, b) => a.distance - b.distance)[0];
+
+        if (closest) {
+            console.info(
+                `Selected point #${closest.index} in position (${closest.point.x}, ${closest.point.y}, ${closest.point.z}) - node ${closest.object.userData.node.id}`,
+            );
+
+            appState.selected.push({
+                object: closest.object,
+                position: closest.point,
+            });
+
+            appState.stateMap.get(appState.state)?.update(event);
+        }
+    }
+}
 
 function onLayerReady() {
     const lookAt = new three.Vector3();
@@ -84,6 +128,7 @@ function onLayerReady() {
 }
 
 function loadEPT(url: string, options: any) {
+    // resetChecks();
     eptSource = new itowns.EntwinePointTileSource({ url });
 
     if (eptLayer) {
@@ -103,45 +148,10 @@ function loadEPT(url: string, options: any) {
     dom.viewerDiv.style.display = "";
     dom.freezeToggle.disabled = false;
     disableButtons(false);
+    resetChecks();
 
-    function clickDownHandler(event: MouseEvent) {
-        clickDown = event;
-    }
-
-    function clickUpHandler(event: MouseEvent) {
-        const dist = (a: MouseEvent, b: MouseEvent) =>
-            Math.sqrt(
-                (a.clientX - b.clientX) ** 2 + (a.clientY - b.clientY) ** 2,
-            );
-
-        if (clickDown && dist(clickDown, event) < 5) {
-            type Picked = {
-                object: three.Points;
-                point: three.Vector3;
-                index: number;
-                distance: number;
-                layer: itowns.Layer;
-            };
-
-            const pick = <Picked[]>view.pickObjectsAt(event, 5, eptLayer);
-            const closest = pick
-                .filter((o) => o != null)
-                .sort((a, b) => a.distance - b.distance)[0];
-
-            if (closest) {
-                console.info(
-                    `Selected point #${closest.index} in position (${closest.point.x}, ${closest.point.y}, ${closest.point.z}) - node ${closest.object.userData.node.id}`,
-                );
-
-                appState.selected.push({
-                    object: closest.object,
-                    position: closest.point,
-                });
-
-                appState.stateMap.get(appState.state)?.update(event);
-            }
-        }
-    }
+    view.domElement.removeEventListener("mousedown", clickDownHandler);
+    view.domElement.removeEventListener("mouseup", clickUpHandler);
 
     view.domElement.addEventListener("mousedown", clickDownHandler);
     view.domElement.addEventListener("mouseup", clickUpHandler);
@@ -193,8 +203,21 @@ function updateFreeze() {
     view.notifyChange();
 }
 
-dom.freezeToggle.checked = false;
 dom.freezeToggle.addEventListener("click", updateFreeze);
+dom.renderingModeColor.addEventListener("click", function() {
+    if (eptLayer) {
+        (eptLayer.material as itowns.PointsMaterial).mode =
+            itowns.PNTS_MODE.COLOR;
+        view.notifyChange(eptLayer, true);
+    }
+});
+dom.renderingModeClassification.addEventListener("click", function() {
+    if (eptLayer) {
+        (eptLayer.material as itowns.PointsMaterial).mode =
+            itowns.PNTS_MODE.CLASSIFICATION;
+        view.notifyChange(eptLayer, true);
+    }
+});
 
 // ------ Application state
 let appState = ApplicationState.getInstance();

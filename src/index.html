@@ -16,8 +16,14 @@
         <div class="center-area">
             <div id="viewerDiv" class="viewer"></div>
             <div id="sliceViewerDiv" class="slice-viewer ui-container shadow">
-                <span class="toolbox-title"><b>Slice view</b></span>
-                <button class="close-button">X</button>
+                <div class="row" style="width: 100%; justify-content: space-between">
+                    <span class="toolbox-title">
+                        <b>Slice view</b>
+                    </span>
+                    <button class="flex-close-button">X</button>
+                </div>
+                <div id="sliceViewerGraphDiv">
+                </div>
             </div>
         </div>
         <div class="toolbox ui-container shadow">
@@ -28,6 +34,7 @@
                 </div>
             </div>
             <div class="divider"></div>
+
             <div id="entwineLoaderDiv" class="entwine-loader">
                 <span class="toolbox-title"><b>Entwine loading</b></span>
                 <div class="row">
@@ -44,15 +51,37 @@
                     <input id="entwineShareOutput" type="text" readonly></input>
                 </div>
             </div>
+
             <div id="renderingControlsDiv" class="rendering-controls">
                 <span class="toolbox-title"><b>Cloud control</b></span>
-                <label class="checkmark-container">
-                    <input type="checkbox" id="freezeToggle" />
-                    <span class="checkmark"></span>
-                    <span class="checkmark"></span>
-                    Freeze
-                </label>
+
+                <div class="row">
+                    <div class="column">
+                        <label class="checkmark-container">
+                            <input type="checkbox" id="freezeToggle" />
+                            <span class="checkmark"></span>
+                            <span class="checkmark"></span>
+                            Freeze
+                        </label>
+                    </div>
+                    <div id="renderingMode" class="column">
+                        <label class="radio-container">
+                            <input type="radio" id="renderingModeColor" name="renderingMode" value="color" checked>
+                            <span class="radio"></span>
+                            <span>Color</span>
+                        </label>
+
+                        <label class="radio-container">
+                            <input type="radio" id="renderingModeClassification" name="renderingMode"
+                                value="classification" checked>
+                            <span class="radio"></span>
+                            <span>Classification</span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
+
             <div id="toolsPanelDiv" class="tools-panel">
                 <span class="toolbox-title"><b>Tools</b></span>
                 <div id="toolGridDiv">
@@ -65,6 +94,7 @@
                     </button>
                 </div>
             </div>
+
             <div id="outputDiv" class="debug-area">
                 <span class="toolbox-title">
                     <b>Output</b>
