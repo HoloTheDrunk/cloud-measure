@@ -68,7 +68,7 @@ export class Card {
     }
 
     private onClick(event: MouseEvent) {
-        this.active = true;
+        this.active = !this.active;
         this.callbacks.onClick(this, event);
     }
 

@@ -9,6 +9,7 @@ import {
 } from "./state";
 import dom from "./dom";
 import { Card } from "./card";
+import { lineIntersectsBox } from "./utils";
 
 // Button mapping
 const buttonMapping = {
@@ -26,6 +27,7 @@ function disableButtons(disabled: boolean) {
 
 function resetChecks() {
     dom.freezeToggle.checked = false;
+    dom.bboxToggle.checked = false;
     dom.renderingModeColor.checked = true;
 }
 
@@ -204,6 +206,20 @@ function updateFreeze() {
 }
 
 dom.freezeToggle.addEventListener("click", updateFreeze);
+
+function toggleBBox() {
+    if (dom.viewerDiv.style.display == "none") {
+        dom.bboxToggle.checked = false;
+        return;
+    }
+
+    // TODO: BBox init
+
+    view.notifyChange();
+}
+
+dom.bboxToggle.addEventListener("click", toggleBBox);
+
 dom.renderingModeColor.addEventListener("click", function() {
     if (eptLayer) {
         (eptLayer.material as itowns.PointsMaterial).mode =
@@ -247,7 +263,30 @@ appState.stateMap = new Map<State, UpdateableState>([
         {
             update: function() {
                 /*TODO: implement slicing (requires new panel)*/
+                // TODO: Define world to local coordinate mapping
+                // TODO: Bounding box selection by recursive intersection
+                // TODO: Bounding box iteration with filter to retrieve points
                 if (appState.selected.length < 2) return;
+
+                const [a, b] = appState.selected
+                    .slice(0, 2)
+                    .map((picked) => picked.position);
+
+                console.log(eptLayer.root);
+
+                function getIntersectedBoxes(line: three.Line3, node: any) {
+                    if (!lineIntersectsBox(line, node.bbox)) return [];
+
+                    if (node.children) {
+                        return node.children.flatMap((child: any) =>
+                            getIntersectedBoxes(line, child),
+                        );
+                    } else {
+                        return [node];
+                    }
+                }
+
+                appState.selected = [];
             },
         },
     ],

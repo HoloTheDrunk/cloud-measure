@@ -2,6 +2,9 @@ const viewerDiv = document.getElementById("viewerDiv") as HTMLDivElement;
 const sliceViewerDiv = document.getElementById(
     "sliceViewerDiv",
 ) as HTMLDivElement;
+const sliceViewerGraphDiv = document.getElementById(
+    "sliceViewerGraphDiv",
+) as HTMLDivElement;
 
 const eptUrl = document.getElementById("ept_url") as HTMLInputElement;
 
@@ -22,6 +25,8 @@ const entwineShareOutput = document.getElementById(
 const freezeToggle = document.getElementById(
     "freezeToggle",
 ) as HTMLInputElement;
+const bboxToggle = document.getElementById("bboxToggle") as HTMLInputElement;
+
 const renderingModeColor = document.getElementById(
     "renderingModeColor",
 ) as HTMLInputElement;
@@ -39,6 +44,7 @@ const toolOutputDiv = document.getElementById(
 export default {
     viewerDiv,
     sliceViewerDiv,
+    sliceViewerGraphDiv,
     eptUrl,
     entwineLoadButton,
     entwineGrandLyonButton,
@@ -46,6 +52,7 @@ export default {
     entwineShareButton,
     entwineShareOutput,
     freezeToggle,
+    bboxToggle,
     renderingModeColor,
     renderingModeClassification,
     toolGridDiv,
